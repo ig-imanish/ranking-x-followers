@@ -1,0 +1,161 @@
+/* Twitter Followers Ranking Tool Styles */
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+  background-color: #f7f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Input Styles */
+input[type="text"] {
+  transition: border-color 0.2s ease-in-out;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #1da1f2 !important;
+  box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.2);
+}
+
+/* Button Styles */
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Select Styles */
+select {
+  transition: border-color 0.2s ease-in-out;
+}
+
+select:focus {
+  outline: none;
+  border-color: #1da1f2;
+  box-shadow: 0 0 0 2px rgba(29, 161, 242, 0.2);
+}
+
+/* User List Animations */
+.user-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.user-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Avatar Image Styles */
+.avatar-img {
+  transition: transform 0.2s ease-in-out;
+}
+
+.avatar-img:hover {
+  transform: scale(1.1);
+}
+
+/* Tier Section Animations */
+.tier-section {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #root {
+    padding: 0.5rem;
+  }
+
+  input[type="text"] {
+    width: 100% !important;
+    margin-bottom: 10px;
+  }
+
+  .preview-container {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .tier-users {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .user-card {
+    margin: 5px !important;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1da1f2;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0d8bd9;
+}
+
+/* Loading States */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Success/Error Feedback */
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  border: 1px solid #f5c6cb;
+}
