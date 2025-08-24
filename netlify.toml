@@ -1,0 +1,23 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "*.jsx"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

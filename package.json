@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "netlify-build": "vite build"
   },
   "dependencies": {
     "axios": "^1.11.0",
