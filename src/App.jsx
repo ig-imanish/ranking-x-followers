@@ -550,6 +550,8 @@ const App = () => {
             >
               💡 <strong>Tip:</strong> Use your device's screenshot feature to
               capture and share this ranking!
+              <br />
+              <strong style={{color: "red"}}>Note:</strong> Loading pfp can take some seconds!
             </p>
           </div>
         )}
