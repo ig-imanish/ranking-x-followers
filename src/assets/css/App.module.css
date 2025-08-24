@@ -1,0 +1,288 @@
+.container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.title {
+  color: #1DA1F2;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.description {
+  color: #666;
+  margin-bottom: 30px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 30px;
+}
+
+.addUserForm {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-width: 1000px;
+  margin: 0 auto 30px;
+}
+
+.formTitle {
+  margin-top: 0;
+  color: #333;
+}
+
+.inputGroup {
+  margin-bottom: 15px;
+}
+
+.inputGroupLarge {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #444;
+}
+
+.input {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: #1DA1F2;
+  outline: none;
+}
+
+.formControls {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.selectContainer {
+}
+
+.select {
+  padding: 12px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.addButton {
+  background-color: #1DA1F2;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.addButton:hover {
+  background-color: #1991db;
+}
+
+/* Users list */
+.usersSection {
+  margin-bottom: 30px;
+  max-width: 1000px;
+  margin: 0 auto 30px;
+}
+
+.usersTitle {
+  color: #333;
+}
+
+.usersContainer {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.userAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  border: 2px solid #1DA1F2;
+}
+
+.userName {
+  margin-right: 12px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.userSelect {
+  padding: 6px 8px;
+  margin-right: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  flex: 1;
+  max-width: 180px;
+}
+
+.removeButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Ranking display */
+.rankingContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.rankingTitle {
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.credit {
+  text-align: center;
+  color: #666;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.rankingPreview {
+  background-color: #2c2c2c;
+  padding: 25px 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1300px;
+}
+
+.tierRow {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 10px;
+  min-height: 55px;
+  background-color: transparent;
+}
+
+.tierLabel {
+  color: black;
+  padding: 12px 18px;
+  border-radius: 10px 0 0 10px;
+  min-width: 180px;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.tierContent {
+  background-color: #3c3c3c;
+  flex: 1;
+  border-radius: 0 10px 10px 0;
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 55px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.tierUserItem {
+  display: flex;
+  align-items: center;
+  background-color: #4c4c4c;
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid #5c5c5c;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.tierUserAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-right: 6px;
+  object-fit: cover;
+  border: 2px solid white;
+}
+
+.tierUserName {
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.emptyTier {
+  color: #888;
+  font-style: italic;
+  padding: 12px;
+  font-size: 12px;
+}
+
+/* Tip section */
+.tipSection {
+  text-align: center;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #e8f5e8;
+  border-radius: 8px;
+  max-width: 500px;
+  margin: 20px auto 0;
+}
+
+.tipText {
+  color: #2d7738;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.noteText {
+  color: red;
+  font-weight: bold;
+}
