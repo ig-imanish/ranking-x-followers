@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import styles from "./assets/css/App.module.css";
 
 const App = () => {
@@ -26,15 +26,15 @@ const App = () => {
     "#26de81",
   ];
 
-  const extractUsernameFromLink = (link) => {
+  const extractUsernameFromLink = useCallback((link) => {
     const patterns = [
       /(?:twitter\.com|x\.com)\/([^/?]+)/i,
       /^@?([a-zA-Z0-9_]{1,15})$/,
     ];
     return patterns.find(pattern => pattern.test(link))?.exec(link)?.[1] || null;
-  };
+  }, []);
 
-  const createDefaultAvatar = () => {
+  const createDefaultAvatar = useCallback(() => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = 48;
@@ -55,11 +55,15 @@ const App = () => {
     ctx.fill();
 
     return canvas.toDataURL("image/png");
-  };
+  }, []);
 
-  const generateAvatarUrl = (username) => `https://unavatar.io/x/${username}`;
+  const generateAvatarUrl = useCallback((username) => `https://unavatar.io/x/${username}`, []);
 
-  const addUser = () => {
+  const isUserExists = useCallback((username) => {
+    return users.some(user => user.username.toLowerCase() === username.toLowerCase());
+  }, [users]);
+
+  const addUser = useCallback(() => {
     if (!username.trim()) {
       alert("Please enter a username or profile link");
       return;
@@ -79,7 +83,7 @@ const App = () => {
       finalAvatarUrl = generateAvatarUrl(finalUsername);
     }
 
-    if (users.some(user => user.username.toLowerCase() === finalUsername.toLowerCase())) {
+    if (isUserExists(finalUsername)) {
       alert("User already added!");
       return;
     }
@@ -94,100 +98,208 @@ const App = () => {
     setUsers(prev => [...prev, newUser]);
     setUsername("");
     setAvatarUrl("");
-  };
+  }, [username, avatarUrl, tier, extractUsernameFromLink, generateAvatarUrl, isUserExists]);
 
-  const removeUser = (userId) => {
+  const removeUser = useCallback((userId) => {
     setUsers(prev => prev.filter(user => user.id !== userId));
-  };
+  }, []);
 
-  const changeUserTier = (userId, newTier) => {
+  const changeUserTier = useCallback((userId, newTier) => {
     setUsers(prev => 
       prev.map(user => 
         user.id === userId ? { ...user, tier: newTier } : user
       )
     );
-  };
+  }, []);
 
-  const loadDomToImage = async () => {
+  const loadDomToImage = useCallback(async () => {
     if (window.domtoimage) return window.domtoimage;
     
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js';
     document.head.appendChild(script);
     
-    await new Promise((resolve, reject) => {
-      script.onload = resolve;
+    return new Promise((resolve, reject) => {
+      script.onload = () => resolve(window.domtoimage);
       script.onerror = reject;
       setTimeout(reject, 5000);
     });
-    
-    return window.domtoimage;
-  };
+  }, []);
 
-  const takeSnapshot = async () => {
+  const preloadImages = useCallback(async (element) => {
+    const images = element.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+      return new Promise((resolve) => {
+        if (img.complete) {
+          resolve();
+        } else {
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+          tempImg.onload = resolve;
+          tempImg.onerror = resolve;
+          tempImg.src = img.src;
+        }
+      });
+    });
+    
+    await Promise.all(imagePromises);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, []);
+
+  const captureElement = useCallback(async (domtoimage, element) => {
+    return domtoimage.toPng(element, {
+      quality: 0.9,
+      bgcolor: '#2c2c2c',
+      cacheBust: true,
+      useCORS: true,
+      allowTaint: true,
+      filter: (node) => node.tagName !== 'SCRIPT',
+      style: {
+        'font-family': 'Arial, sans-serif',
+        'color': '#ffffff',
+        'transform': 'scale(1)',
+        'transform-origin': 'top left'
+      }
+    });
+  }, []);
+
+  const createCanvasWithHeader = useCallback((img) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const sidePadding = 4;
+    const topBottomPadding = 20;
+    const headerHeight = 60;
+    canvas.width = img.width + (sidePadding * 2);
+    canvas.height = img.height + headerHeight + (topBottomPadding * 2);
+    
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#1DA1F2';
+    ctx.font = 'bold 18px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Twitter Followers Ranking Tool', canvas.width / 2, topBottomPadding + 18);
+    
+    ctx.fillStyle = '#666';
+    ctx.font = '12px Arial, sans-serif';
+    const websiteUrl = window.location.hostname;
+    ctx.fillText(`Created with ❤️ by @itz_Manish02 | ${websiteUrl}`, canvas.width / 2, topBottomPadding + 38);
+    
+    ctx.drawImage(img, sidePadding, topBottomPadding + headerHeight);
+    
+    return canvas;
+  }, []);
+
+  const downloadForSafari = useCallback((canvas) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `twitter-followers-ranking-${Date.now()}.png`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        const event = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        link.dispatchEvent(event);
+        document.body.removeChild(link);
+        return;
+      }
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `twitter-followers-ranking-${Date.now()}.png`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }, 'image/png', 0.9);
+  }, []);
+
+  const downloadForStandardBrowser = useCallback((canvas) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        alert('Failed to generate image. Please try again.');
+        return;
+      }
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `twitter-followers-ranking-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }, []);
+
+  const handleFallback = useCallback(async (domtoimage) => {
+    const canvas = await domtoimage.toCanvas(previewRef.current, {
+      bgcolor: '#2c2c2c',
+      cacheBust: true,
+      useCORS: true
+    });
+    
+    const dataURL = canvas.toDataURL('image/png');
+    const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+    
+    if (isSafari) {
+      const newTab = window.open();
+      newTab.document.write(`
+        <html>
+          <body style="margin:0; padding:20px; text-align:center; font-family: Arial;">
+            <h3>Your Twitter Ranking Image</h3>
+            <p>Long press the image below and select "Save Image" or "Add to Photos"</p>
+            <img src="${dataURL}" style="max-width:100%; border: 1px solid #ccc;"/>
+            <br><br>
+            <a href="${dataURL}" download="twitter-ranking.png" style="display:inline-block; padding:10px 20px; background:#1DA1F2; color:white; text-decoration:none; border-radius:5px;">Download Image</a>
+          </body>
+        </html>
+      `);
+    } else {
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `twitter-followers-ranking-${Date.now()}.png`;
+      link.click();
+    }
+  }, []);
+
+  const takeSnapshot = useCallback(async () => {
     if (!previewRef.current) return;
 
     try {
       const domtoimage = await loadDomToImage();
       if (!domtoimage) throw new Error('Failed to load dom-to-image');
       
-      const dataUrl = await domtoimage.toPng(previewRef.current, {
-        quality: 0.95,
-        bgcolor: '#2c2c2c',
-        cacheBust: true,
-        filter: function (node) {
-          return node.tagName !== 'SCRIPT';
-        },
-        style: {
-          'font-family': 'Arial, sans-serif',
-          'color': '#ffffff'
-        }
-      });
+      await preloadImages(previewRef.current);
+      const dataUrl = await captureElement(domtoimage, previewRef.current);
       
       const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        const canvas = createCanvasWithHeader(img);
+        const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
         
-        const sidePadding = 4;
-        const topBottomPadding = 20;
-        const headerHeight = 60;
-        canvas.width = img.width + (sidePadding * 2);
-        canvas.height = img.height + headerHeight + (topBottomPadding * 2);
-        
-        ctx.fillStyle = '#f5f5f5';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = '#1DA1F2';
-        ctx.font = 'bold 18px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Twitter Followers Ranking Tool', canvas.width / 2, topBottomPadding + 18);
-        
-        ctx.fillStyle = '#666';
-        ctx.font = '12px Arial, sans-serif';
-        const websiteUrl = window.location.hostname;
-        ctx.fillText(`Created with ❤️ by @itz_Manish02 | ${websiteUrl}`, canvas.width / 2, topBottomPadding + 38);
-        
-        ctx.drawImage(img, sidePadding, topBottomPadding + headerHeight);
-        
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            alert('Failed to generate image. Please try again.');
-            return;
-          }
-          
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `twitter-followers-ranking-${Date.now()}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }, 'image/png');
+        if (isSafari) {
+          downloadForSafari(canvas);
+        } else {
+          downloadForStandardBrowser(canvas);
+        }
       };
       
-      img.onerror = function() {
+      img.onerror = () => {
         throw new Error('Failed to load captured image');
       };
       
@@ -198,24 +310,17 @@ const App = () => {
       
       try {
         const domtoimage = await loadDomToImage();
-        const dataUrl = await domtoimage.toPng(previewRef.current, {
-          bgcolor: '#2c2c2c',
-          cacheBust: true
-        });
-        
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `twitter-followers-ranking-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
+        await handleFallback(domtoimage);
       } catch (fallbackError) {
         console.error('Fallback snapshot error:', fallbackError);
-        alert('Screenshot failed. Please try using your device\'s built-in screenshot feature instead.');
+        alert('Screenshot failed on this device. Please try using your device\'s built-in screenshot feature instead, or try on a different browser.');
       }
     }
-  };
+  }, [loadDomToImage, preloadImages, captureElement, createCanvasWithHeader, downloadForSafari, downloadForStandardBrowser, handleFallback]);
+
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === "Enter") addUser();
+  }, [addUser]);
 
   const groupedUsers = tiers.reduce((acc, t) => {
     acc[t] = users.filter(u => u.tier === t);
@@ -244,7 +349,7 @@ const App = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className={styles.input}
-            onKeyPress={(e) => e.key === "Enter" && addUser()}
+            onKeyPress={handleKeyPress}
           />
         </div>
 
