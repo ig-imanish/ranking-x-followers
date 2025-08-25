@@ -34,34 +34,61 @@ const App = () => {
     return patterns.find(pattern => pattern.test(link))?.exec(link)?.[1] || null;
   }, []);
 
-  const createDefaultAvatar = useCallback(() => {
+  const generateAvatarUrl = useCallback((username) => {
+    const avatarSources = [
+      `https://unavatar.io/x/${username}`,
+      `https://unavatar.io/twitter/${username}`,
+      `https://github.com/${username}.png?size=48`
+    ];
+    return avatarSources[0];
+  }, []);
+
+  const createDefaultAvatar = useCallback((username = "") => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = 48;
     canvas.height = 48;
 
-    ctx.fillStyle = "#1DA1F2";
+    const colors = ['#FF6B35', '#F7931E', '#FFD23F', '#06D6A0', '#118AB2', '#073B4C'];
+    const colorIndex = username.length % colors.length;
+    
+    ctx.fillStyle = colors[colorIndex];
     ctx.beginPath();
     ctx.arc(24, 24, 24, 0, 2 * Math.PI);
     ctx.fill();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.beginPath();
-    ctx.arc(24, 18, 8, 0, 2 * Math.PI);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(24, 38, 12, 0, Math.PI);
-    ctx.fill();
+    ctx.font = "bold 18px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const initial = username.charAt(0).toUpperCase() || "?";
+    ctx.fillText(initial, 24, 24);
 
     return canvas.toDataURL("image/png");
   }, []);
 
-  const generateAvatarUrl = useCallback((username) => `https://unavatar.io/x/${username}`, []);
-
-  const isUserExists = useCallback((username) => {
-    return users.some(user => user.username.toLowerCase() === username.toLowerCase());
-  }, [users]);
+  const handleImageError = useCallback((e, username) => {
+    const img = e.target;
+    if (!img.dataset.fallbackAttempted) {
+      img.dataset.fallbackAttempted = "true";
+      
+      const fallbackSources = [
+        `https://unavatar.io/twitter/${username}`,
+        `https://github.com/${username}.png?size=48`,
+        createDefaultAvatar(username)
+      ];
+      
+      const currentSrc = img.src;
+      const currentIndex = fallbackSources.findIndex(src => currentSrc.includes(src.split('/')[2]?.split('.')[0] || ''));
+      const nextIndex = currentIndex + 1;
+      
+      if (nextIndex < fallbackSources.length) {
+        img.src = fallbackSources[nextIndex];
+      } else {
+        img.src = createDefaultAvatar(username);
+      }
+    }
+  }, [createDefaultAvatar]);
 
   const addUser = useCallback(() => {
     if (!username.trim()) {
@@ -83,7 +110,7 @@ const App = () => {
       finalAvatarUrl = generateAvatarUrl(finalUsername);
     }
 
-    if (isUserExists(finalUsername)) {
+    if (users.some(user => user.username.toLowerCase() === finalUsername.toLowerCase())) {
       alert("User already added!");
       return;
     }
@@ -98,7 +125,7 @@ const App = () => {
     setUsers(prev => [...prev, newUser]);
     setUsername("");
     setAvatarUrl("");
-  }, [username, avatarUrl, tier, extractUsernameFromLink, generateAvatarUrl, isUserExists]);
+  }, [username, avatarUrl, tier, users, extractUsernameFromLink, generateAvatarUrl]);
 
   const removeUser = useCallback((userId) => {
     setUsers(prev => prev.filter(user => user.id !== userId));
@@ -130,21 +157,50 @@ const App = () => {
     const images = element.querySelectorAll('img');
     const imagePromises = Array.from(images).map(img => {
       return new Promise((resolve) => {
-        if (img.complete) {
+        if (img.complete && img.naturalWidth > 0) {
           resolve();
         } else {
-          const tempImg = new Image();
-          tempImg.crossOrigin = 'anonymous';
-          tempImg.onload = resolve;
-          tempImg.onerror = resolve;
-          tempImg.src = img.src;
+          const username = img.alt || '';
+          const fallbackSources = [
+            img.src,
+            `https://unavatar.io/twitter/${username}`,
+            `https://github.com/${username}.png?size=48`
+          ];
+          
+          let attemptIndex = 0;
+          
+          const tryNextSource = () => {
+            if (attemptIndex < fallbackSources.length) {
+              const tempImg = new Image();
+              tempImg.crossOrigin = 'anonymous';
+              tempImg.onload = () => {
+                img.src = tempImg.src;
+                resolve();
+              };
+              tempImg.onerror = () => {
+                attemptIndex++;
+                if (attemptIndex < fallbackSources.length) {
+                  tryNextSource();
+                } else {
+                  img.src = createDefaultAvatar(username);
+                  resolve();
+                }
+              };
+              tempImg.src = fallbackSources[attemptIndex];
+            } else {
+              img.src = createDefaultAvatar(username);
+              resolve();
+            }
+          };
+          
+          tryNextSource();
         }
       });
     });
     
     await Promise.all(imagePromises);
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }, []);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, [createDefaultAvatar]);
 
   const captureElement = useCallback(async (domtoimage, element) => {
     return domtoimage.toPng(element, {
@@ -397,9 +453,8 @@ const App = () => {
                   src={user.avatar}
                   alt={user.username}
                   className={styles.userAvatar}
-                  onError={(e) => {
-                    e.target.src = createDefaultAvatar();
-                  }}
+                  onError={(e) => handleImageError(e, user.username)}
+                  crossOrigin="anonymous"
                 />
                 <span className={styles.userName}>@{user.username}</span>
                 <select
@@ -456,9 +511,8 @@ const App = () => {
                         src={u.avatar}
                         alt={u.username}
                         className={styles.tierUserAvatar}
-                        onError={(e) => {
-                          e.target.src = createDefaultAvatar();
-                        }}
+                        onError={(e) => handleImageError(e, u.username)}
+                        crossOrigin="anonymous"
                       />
                       <span className={styles.tierUserName}>@{u.username}</span>
                     </div>
