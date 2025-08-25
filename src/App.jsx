@@ -108,11 +108,11 @@ const App = () => {
     );
   };
 
-  const loadHtml2Canvas = async () => {
-    if (window.html2canvas) return window.html2canvas;
+  const loadDomToImage = async () => {
+    if (window.domtoimage) return window.domtoimage;
     
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js';
     document.head.appendChild(script);
     
     await new Promise((resolve, reject) => {
@@ -121,100 +121,99 @@ const App = () => {
       setTimeout(reject, 5000);
     });
     
-    return window.html2canvas;
+    return window.domtoimage;
   };
 
   const takeSnapshot = async () => {
     if (!previewRef.current) return;
 
     try {
-      const html2canvas = await loadHtml2Canvas();
-      if (!html2canvas) throw new Error('Failed to load html2canvas');
+      const domtoimage = await loadDomToImage();
+      if (!domtoimage) throw new Error('Failed to load dom-to-image');
       
-      const websiteUrl = window.location.hostname;
-      
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = `
-        background-color: #f5f5f5 !important;
-        padding: 30px !important;
-        font-family: Arial, sans-serif !important;
-        width: fit-content !important;
-        margin: 0 auto !important;
-        box-sizing: border-box !important;
-        position: fixed !important;
-        top: -9999px !important;
-        left: -9999px !important;
-        z-index: -1000 !important;
-      `;
-      
-      const header = document.createElement('div');
-      header.style.cssText = `
-        text-align: center !important;
-        margin-bottom: 25px !important;
-        color: #333 !important;
-        background-color: transparent !important;
-      `;
-      header.innerHTML = `
-        <div style="font-size: 20px !important; font-weight: bold !important; color: #1DA1F2 !important; margin-bottom: 8px !important; font-family: Arial, sans-serif !important;">
-          Twitter Followers Ranking Tool
-        </div>
-        <div style="font-size: 14px !important; color: #666 !important; font-family: Arial, sans-serif !important;">
-          Created with ❤️ by @itz_Manish02 | ${websiteUrl}
-        </div>
-      `;
-      
-      const clonedPreview = previewRef.current.cloneNode(true);
-      clonedPreview.style.cssText = `
-        background-color: #2c2c2c !important;
-        padding: 25px 30px !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
-        width: ${previewRef.current.offsetWidth}px !important;
-        position: relative !important;
-      `;
-      
-      wrapper.appendChild(header);
-      wrapper.appendChild(clonedPreview);
-      document.body.appendChild(wrapper);
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const canvas = await html2canvas(wrapper, {
-        backgroundColor: '#f5f5f5',
-        scale: 1,
-        useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: false,
-        logging: false,
-        width: wrapper.offsetWidth,
-        height: wrapper.offsetHeight,
+      const dataUrl = await domtoimage.toPng(previewRef.current, {
+        quality: 0.95,
+        bgcolor: '#2c2c2c',
+        cacheBust: true,
+        filter: function (node) {
+          return node.tagName !== 'SCRIPT';
+        },
+        style: {
+          'font-family': 'Arial, sans-serif',
+          'color': '#ffffff'
+        }
       });
       
-      document.body.removeChild(wrapper);
-      
-      if (canvas.width === 0 || canvas.height === 0) {
-        throw new Error('Canvas has no dimensions');
-      }
-      
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          alert('Failed to generate image. Please try again.');
-          return;
-        }
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `twitter-followers-ranking-${Date.now()}.jpeg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 'image/jpeg', 0.9);
+        const sidePadding = 4;
+        const topBottomPadding = 20;
+        const headerHeight = 60;
+        canvas.width = img.width + (sidePadding * 2);
+        canvas.height = img.height + headerHeight + (topBottomPadding * 2);
+        
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#1DA1F2';
+        ctx.font = 'bold 18px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Twitter Followers Ranking Tool', canvas.width / 2, topBottomPadding + 18);
+        
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Arial, sans-serif';
+        const websiteUrl = window.location.hostname;
+        ctx.fillText(`Created with ❤️ by @itz_Manish02 | ${websiteUrl}`, canvas.width / 2, topBottomPadding + 38);
+        
+        ctx.drawImage(img, sidePadding, topBottomPadding + headerHeight);
+        
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            alert('Failed to generate image. Please try again.');
+            return;
+          }
+          
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `twitter-followers-ranking-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+      
+      img.onerror = function() {
+        throw new Error('Failed to load captured image');
+      };
+      
+      img.src = dataUrl;
       
     } catch (error) {
       console.error('Snapshot error:', error);
-      alert('Screenshot failed. Please try using your device\'s built-in screenshot feature instead.');
+      
+      try {
+        const domtoimage = await loadDomToImage();
+        const dataUrl = await domtoimage.toPng(previewRef.current, {
+          bgcolor: '#2c2c2c',
+          cacheBust: true
+        });
+        
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `twitter-followers-ranking-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+      } catch (fallbackError) {
+        console.error('Fallback snapshot error:', fallbackError);
+        alert('Screenshot failed. Please try using your device\'s built-in screenshot feature instead.');
+      }
     }
   };
 
@@ -271,7 +270,9 @@ const App = () => {
               className={styles.select}
             >
               {tiers.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -302,7 +303,9 @@ const App = () => {
                   className={styles.userSelect}
                 >
                   {tiers.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
                 </select>
                 <button
