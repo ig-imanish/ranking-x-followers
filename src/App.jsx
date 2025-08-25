@@ -34,15 +34,6 @@ const App = () => {
     return patterns.find(pattern => pattern.test(link))?.exec(link)?.[1] || null;
   }, []);
 
-  const generateAvatarUrl = useCallback((username) => {
-    const avatarSources = [
-      `https://unavatar.io/x/${username}`,
-      `https://unavatar.io/twitter/${username}`,
-      `https://github.com/${username}.png?size=48`
-    ];
-    return avatarSources[0];
-  }, []);
-
   const createDefaultAvatar = useCallback((username = "") => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -67,6 +58,10 @@ const App = () => {
     return canvas.toDataURL("image/png");
   }, []);
 
+  const generateAvatarUrl = useCallback((username) => {
+    return `https://unavatar.io/x/${username}`;
+  }, []);
+
   const handleImageError = useCallback((e, username) => {
     const img = e.target;
     if (!img.dataset.fallbackAttempted) {
@@ -74,19 +69,19 @@ const App = () => {
       
       const fallbackSources = [
         `https://unavatar.io/twitter/${username}`,
-        `https://github.com/${username}.png?size=48`,
-        createDefaultAvatar(username)
+        `https://github.com/${username}.png?size=48`
       ];
       
       const currentSrc = img.src;
-      const currentIndex = fallbackSources.findIndex(src => currentSrc.includes(src.split('/')[2]?.split('.')[0] || ''));
-      const nextIndex = currentIndex + 1;
+      let nextSource = fallbackSources.find(src => !currentSrc.includes(src.split('/')[2]?.split('.')[0]));
       
-      if (nextIndex < fallbackSources.length) {
-        img.src = fallbackSources[nextIndex];
+      if (nextSource) {
+        img.src = nextSource;
       } else {
         img.src = createDefaultAvatar(username);
       }
+    } else {
+      img.src = createDefaultAvatar(username);
     }
   }, [createDefaultAvatar]);
 
@@ -160,47 +155,25 @@ const App = () => {
         if (img.complete && img.naturalWidth > 0) {
           resolve();
         } else {
-          const username = img.alt || '';
-          const fallbackSources = [
-            img.src,
-            `https://unavatar.io/twitter/${username}`,
-            `https://github.com/${username}.png?size=48`
-          ];
+          const timeoutId = setTimeout(() => {
+            resolve();
+          }, 3000);
           
-          let attemptIndex = 0;
-          
-          const tryNextSource = () => {
-            if (attemptIndex < fallbackSources.length) {
-              const tempImg = new Image();
-              tempImg.crossOrigin = 'anonymous';
-              tempImg.onload = () => {
-                img.src = tempImg.src;
-                resolve();
-              };
-              tempImg.onerror = () => {
-                attemptIndex++;
-                if (attemptIndex < fallbackSources.length) {
-                  tryNextSource();
-                } else {
-                  img.src = createDefaultAvatar(username);
-                  resolve();
-                }
-              };
-              tempImg.src = fallbackSources[attemptIndex];
-            } else {
-              img.src = createDefaultAvatar(username);
-              resolve();
-            }
+          img.onload = () => {
+            clearTimeout(timeoutId);
+            resolve();
           };
-          
-          tryNextSource();
+          img.onerror = () => {
+            clearTimeout(timeoutId);
+            resolve();
+          };
         }
       });
     });
     
     await Promise.all(imagePromises);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }, [createDefaultAvatar]);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, []);
 
   const captureElement = useCallback(async (domtoimage, element) => {
     return domtoimage.toPng(element, {
@@ -454,7 +427,6 @@ const App = () => {
                   alt={user.username}
                   className={styles.userAvatar}
                   onError={(e) => handleImageError(e, user.username)}
-                  crossOrigin="anonymous"
                 />
                 <span className={styles.userName}>@{user.username}</span>
                 <select
@@ -512,7 +484,6 @@ const App = () => {
                         alt={u.username}
                         className={styles.tierUserAvatar}
                         onError={(e) => handleImageError(e, u.username)}
-                        crossOrigin="anonymous"
                       />
                       <span className={styles.tierUserName}>@{u.username}</span>
                     </div>
