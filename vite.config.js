@@ -13,7 +13,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          domtoimage: ['dom-to-image'],
+          domtoimagemore: ['dom-to-image-more'],
         },
       },
     },
