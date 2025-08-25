@@ -19,11 +19,11 @@ const App = () => {
 
   const tierColors = [
     "#ff4757",
-    "#ff6b35", 
-    "#ff9500",
-    "#ffa502",
-    "#2ed573",
-    "#26de81",
+    "#ff6b6b", 
+    "#ff6b35",
+    "#f1c40f",
+    "#2ecc71",
+    "#1abc9c",
   ];
 
   const extractUsernameFromLink = useCallback((link) => {
