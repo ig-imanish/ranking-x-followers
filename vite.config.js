@@ -7,6 +7,16 @@ export default defineConfig({
   build: {
     minify: 'esbuild',
     cssMinify: true,
+    cssCodeSplit: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          domtoimage: ['dom-to-image'],
+        },
+      },
+    },
   },
   css: {
     devSourcemap: true,
