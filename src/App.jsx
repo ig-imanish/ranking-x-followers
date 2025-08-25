@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import domtoimage from "dom-to-image-more";
 import styles from "./assets/css/App.module.css";
 
 const App = () => {
@@ -18,12 +19,12 @@ const App = () => {
   ];
 
   const tierColors = [
-    "#ff4757",
-    "#ff6b6b", 
-    "#ff6b35",
-    "#f1c40f",
-    "#2ecc71",
-    "#1abc9c",
+    "#ff4757",  // FAV - Red
+    "#ff6b6b",  // ELITE - Lighter Red/Pink
+    "#ff6b35",  // WE NEED TO INTERACT MORE - Orange
+    "#f1c40f",  // NEUTRAL - Yellow
+    "#2ecc71",  // IDK YOU - Green
+    "#1abc9c",  // STRANGER - Teal/Turquoise
   ];
 
   const extractUsernameFromLink = useCallback((link) => {
@@ -134,20 +135,6 @@ const App = () => {
     );
   }, []);
 
-  const loadDomToImage = useCallback(async () => {
-    if (window.domtoimage) return window.domtoimage;
-    
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js';
-    document.head.appendChild(script);
-    
-    return new Promise((resolve, reject) => {
-      script.onload = () => resolve(window.domtoimage);
-      script.onerror = reject;
-      setTimeout(reject, 5000);
-    });
-  }, []);
-
   const preloadImages = useCallback(async (element) => {
     const images = element.querySelectorAll('img');
     const imagePromises = Array.from(images).map(img => {
@@ -175,19 +162,23 @@ const App = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
   }, []);
 
-  const captureElement = useCallback(async (domtoimage, element) => {
+  const captureElement = useCallback(async (element) => {
     return domtoimage.toPng(element, {
-      quality: 0.9,
+      quality: 1.0,
       bgcolor: '#2c2c2c',
       cacheBust: true,
+      copyDefaultStyles: true,
       useCORS: true,
-      allowTaint: true,
-      filter: (node) => node.tagName !== 'SCRIPT',
+      allowTaint: false,
+      scale: 1,
+      filter: (node) => {
+        if (node.tagName === 'SCRIPT') return false;
+        if (node.tagName === 'STYLE') return true;
+        return true;
+      },
       style: {
         'font-family': 'Arial, sans-serif',
-        'color': '#ffffff',
-        'transform': 'scale(1)',
-        'transform-origin': 'top left'
+        'color': '#ffffff'
       }
     });
   }, []);
@@ -273,34 +264,41 @@ const App = () => {
     }, 'image/png');
   }, []);
 
-  const handleFallback = useCallback(async (domtoimage) => {
-    const canvas = await domtoimage.toCanvas(previewRef.current, {
-      bgcolor: '#2c2c2c',
-      cacheBust: true,
-      useCORS: true
-    });
-    
-    const dataURL = canvas.toDataURL('image/png');
-    const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
-    
-    if (isSafari) {
-      const newTab = window.open();
-      newTab.document.write(`
-        <html>
-          <body style="margin:0; padding:20px; text-align:center; font-family: Arial;">
-            <h3>Your Twitter Ranking Image</h3>
-            <p>Long press the image below and select "Save Image" or "Add to Photos"</p>
-            <img src="${dataURL}" style="max-width:100%; border: 1px solid #ccc;"/>
-            <br><br>
-            <a href="${dataURL}" download="twitter-ranking.png" style="display:inline-block; padding:10px 20px; background:#1DA1F2; color:white; text-decoration:none; border-radius:5px;">Download Image</a>
-          </body>
-        </html>
-      `);
-    } else {
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = `twitter-followers-ranking-${Date.now()}.png`;
-      link.click();
+  const handleFallback = useCallback(async () => {
+    try {
+      const canvas = await domtoimage.toCanvas(previewRef.current, {
+        bgcolor: '#2c2c2c',
+        cacheBust: true,
+        copyDefaultStyles: true,
+        useCORS: true,
+        scale: 1
+      });
+      
+      const dataURL = canvas.toDataURL('image/png', 1.0);
+      const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+      
+      if (isSafari) {
+        const newTab = window.open();
+        newTab.document.write(`
+          <html>
+            <body style="margin:0; padding:20px; text-align:center; font-family: Arial;">
+              <h3>Your Twitter Ranking Image</h3>
+              <p>Long press the image below and select "Save Image" or "Add to Photos"</p>
+              <img src="${dataURL}" style="max-width:100%; border: 1px solid #ccc;"/>
+              <br><br>
+              <a href="${dataURL}" download="twitter-ranking.png" style="display:inline-block; padding:10px 20px; background:#1DA1F2; color:white; text-decoration:none; border-radius:5px;">Download Image</a>
+            </body>
+          </html>
+        `);
+      } else {
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `twitter-followers-ranking-${Date.now()}.png`;
+        link.click();
+      }
+    } catch (error) {
+      console.error('Canvas fallback failed:', error);
+      throw error;
     }
   }, []);
 
@@ -308,11 +306,8 @@ const App = () => {
     if (!previewRef.current) return;
 
     try {
-      const domtoimage = await loadDomToImage();
-      if (!domtoimage) throw new Error('Failed to load dom-to-image');
-      
       await preloadImages(previewRef.current);
-      const dataUrl = await captureElement(domtoimage, previewRef.current);
+      const dataUrl = await captureElement(previewRef.current);
       
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -338,14 +333,13 @@ const App = () => {
       console.error('Snapshot error:', error);
       
       try {
-        const domtoimage = await loadDomToImage();
-        await handleFallback(domtoimage);
+        await handleFallback();
       } catch (fallbackError) {
         console.error('Fallback snapshot error:', fallbackError);
         alert('Screenshot failed on this device. Please try using your device\'s built-in screenshot feature instead, or try on a different browser.');
       }
     }
-  }, [loadDomToImage, preloadImages, captureElement, createCanvasWithHeader, downloadForSafari, downloadForStandardBrowser, handleFallback]);
+  }, [preloadImages, captureElement, createCanvasWithHeader, downloadForSafari, downloadForStandardBrowser, handleFallback]);
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === "Enter") addUser();
